@@ -50,24 +50,20 @@ python extract_indexeddb.py --all --output all_data.json
 
 ### Claude Code Session Extraction
 
-Claude Code stores conversation sessions locally at `~/.claude/projects/`.
+Claude Code stores conversation sessions locally at `~/.claude/projects/` as JSONL files.
 
 ```bash
-# List all Claude Code sessions
+# List all Claude Code session files
 python extract_claude_sessions.py --list
 
-# Extract a specific session as JSON
-python extract_claude_sessions.py --session <session-id> --pretty
+# Copy all session files to a directory
+python extract_claude_sessions.py --output ./sessions/
 
-# Extract as human-readable text
-python extract_claude_sessions.py --session <session-id> --format text
-
-# Extract all sessions from a project
-python extract_claude_sessions.py --project /path/to/project --format jsonl
-
-# Extract all sessions
-python extract_claude_sessions.py --all --output sessions.json
+# Copy sessions from a specific project
+python extract_claude_sessions.py --project /path/to/project --output ./sessions/
 ```
+
+Files are copied with a project prefix to avoid name collisions (e.g., `-Users-mtaran-myproject_session-id.jsonl`).
 
 ## Chrome IndexedDB Location
 
@@ -108,19 +104,6 @@ This tool uses [ccl_chromium_reader](https://github.com/cclgroupltd/ccl_chromium
         }
       ]
     }
-  ]
-}
-```
-
-### Claude Session Output
-```json
-{
-  "session_id": "uuid",
-  "project_path": "/path/to/project",
-  "cwd": "/working/directory",
-  "messages": [
-    {"role": "user", "content": "Hello", "timestamp": "..."},
-    {"role": "assistant", "content": "Hi!", "timestamp": "..."}
   ]
 }
 ```

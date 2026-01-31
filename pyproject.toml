@@ -1,0 +1,15 @@
+[project]
+name = "crdbextract"
+version = "0.2.0"
+description = "Tools for extracting data from Chrome's IndexedDB storage and Claude Code sessions"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+
+dependencies = [
+    "ccl-chromium-reader @ git+https://github.com/cclgroupltd/ccl_chromium_reader.git",
+]
+
+[project.scripts]
+extract-indexeddb = "extract_indexeddb:main"
+extract-claude-sessions = "extract_claude_sessions:main"
