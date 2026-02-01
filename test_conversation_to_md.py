@@ -332,21 +332,3 @@ class TestEdgeCases:
         result = format_merged_messages([])
         assert result == ""
 
-    def test_todo_write_truncation(self):
-        """Test that long todo content is truncated to 40 chars."""
-        msg = {
-            "type": "assistant",
-            "message": {
-                "role": "assistant",
-                "model": "claude-sonnet-4",
-                "content": [
-                    {"type": "tool_use", "name": "TodoWrite", "input": {
-                        "todos": [{"status": "pending", "content": "A" * 100}]
-                    }}
-                ]
-            }
-        }
-        result = format_merged_messages([msg])
-        # Content should be truncated to 40 chars
-        assert "A" * 40 in result
-        assert "A" * 41 not in result

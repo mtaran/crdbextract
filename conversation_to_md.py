@@ -72,15 +72,15 @@ def _format_tool_call(tool_name: str, tool_input: dict) -> str:
 
     if tool_name == 'TodoWrite':
         todos = tool_input.get('todos', [])
-        if todos:
-            todo_summary = "; ".join(
-                f"{t.get('status', '?')[0].upper()}: {t.get('content', '')[:40]}"
-                for t in todos[:5]
-            )
-            if len(todos) > 5:
-                todo_summary += f" (+{len(todos) - 5} more)"
-            return f"[TodoWrite] {todo_summary}"
-        return "[TodoWrite]"
+        if not todos:
+            return "[TodoWrite]"
+        lines = ["[TodoWrite]"]
+        for t in todos:
+            status = t.get('status', 'pending')
+            checkbox = "[x]" if status == 'completed' else "[ ]"
+            content = t.get('content', '')
+            lines.append(f"  - {checkbox} {content}")
+        return "\n".join(lines)
 
     if tool_name == 'WebFetch':
         url = tool_input.get('url', '')

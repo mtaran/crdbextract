@@ -372,7 +372,9 @@ What is this?
 -- format_merged/todo_write.md --
 ### Assistant (sonnet)
 
-- [TodoWrite] P: First task; C: Second task done
+- [TodoWrite]
+  - [ ] First task
+  - [x] Second task done
 
 -- format_merged/todo_write_many.json --
 [
@@ -401,7 +403,15 @@ What is this?
 -- format_merged/todo_write_many.md --
 ### Assistant (sonnet)
 
-- [TodoWrite] P: Task 1; P: Task 2; P: Task 3; P: Task 4; P: Task 5 (+3 more)
+- [TodoWrite]
+  - [ ] Task 1
+  - [ ] Task 2
+  - [ ] Task 3
+  - [ ] Task 4
+  - [ ] Task 5
+  - [ ] Task 6
+  - [ ] Task 7
+  - [ ] Task 8
 
 -- format_merged/todo_write_empty.json --
 [
