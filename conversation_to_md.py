@@ -179,8 +179,7 @@ def extract_message_parts(msg: dict) -> dict:
 
 def format_merged_messages(messages: list[dict], indent: str = "") -> str:
     """
-    Format messages, merging consecutive assistant tool-call-only blocks into
-    the preceding text block.
+    Format messages, merging all consecutive assistant messages into a single block.
     """
     lines = []
     i = 0
@@ -203,31 +202,10 @@ def format_merged_messages(messages: list[dict], indent: str = "") -> str:
             i += 1
 
         elif parts['role'] == 'assistant':
-            model = parts['model']
-
-            # Output thinking if present
-            if parts['thinking']:
-                lines.append(f"{indent}### Assistant ({model})")
-                lines.append("")
-                for line in parts['thinking'].split('\n'):
-                    lines.append(f"{indent}> {line}")
-                lines.append(f"{indent}>")
-                lines.append("")
-
-            # Output text if present
-            if parts['text']:
-                if not parts['thinking']:  # Don't repeat header
-                    lines.append(f"{indent}### Assistant ({model})")
-                    lines.append("")
-                for line in parts['text'].split('\n'):
-                    lines.append(f"{indent}{line}")
-                lines.append("")
-
-            # Collect this message's tools plus any following tool-only messages
-            collected_tools = list(parts['tool_calls'])
+            # Collect all consecutive assistant messages
+            assistant_parts_list = [parts]
             i += 1
 
-            # Look ahead for consecutive tool-only assistant messages
             while i < len(messages):
                 next_parts = extract_message_parts(messages[i])
                 if next_parts is None:
@@ -235,24 +213,60 @@ def format_merged_messages(messages: list[dict], indent: str = "") -> str:
                     continue
                 if next_parts['role'] != 'assistant':
                     break
-                # If this assistant message has text or thinking, stop merging
-                if next_parts['text'] or next_parts['thinking']:
-                    break
-                # Tool-only message - merge it
-                collected_tools.extend(next_parts['tool_calls'])
-                if next_parts['model']:
-                    model = next_parts['model']
+                assistant_parts_list.append(next_parts)
                 i += 1
 
-            # Output collected tools
-            if collected_tools:
-                # If we had no text/thinking, we need a header
-                if not parts['text'] and not parts['thinking']:
-                    lines.append(f"{indent}### Assistant ({model})")
+            # Find the model to use (last non-empty model)
+            model = ''
+            for p in assistant_parts_list:
+                if p['model']:
+                    model = p['model']
+
+            # Output header once
+            lines.append(f"{indent}### Assistant ({model})")
+            lines.append("")
+
+            # Build a flat list of content items: ('thinking', text), ('text', text), ('tools', [tools])
+            # Then output, merging consecutive tool blocks
+            content_items = []
+            for p in assistant_parts_list:
+                if p['thinking']:
+                    content_items.append(('thinking', p['thinking']))
+                if p['text']:
+                    content_items.append(('text', p['text']))
+                if p['tool_calls']:
+                    content_items.append(('tools', p['tool_calls']))
+
+            # Output content, merging consecutive tool blocks
+            j = 0
+            while j < len(content_items):
+                item_type, item_content = content_items[j]
+
+                if item_type == 'thinking':
+                    for line in item_content.split('\n'):
+                        lines.append(f"{indent}> {line}")
+                    lines.append(f"{indent}>")
                     lines.append("")
-                for tc in collected_tools:
-                    lines.append(f"{indent}- {tc}")
-                lines.append("")
+                    j += 1
+
+                elif item_type == 'text':
+                    for line in item_content.split('\n'):
+                        lines.append(f"{indent}{line}")
+                    lines.append("")
+                    j += 1
+
+                elif item_type == 'tools':
+                    # Collect consecutive tool blocks
+                    all_tools = list(item_content)
+                    j += 1
+                    while j < len(content_items) and content_items[j][0] == 'tools':
+                        all_tools.extend(content_items[j][1])
+                        j += 1
+                    for tc in all_tools:
+                        lines.append(f"{indent}- {tc}")
+                    lines.append("")
+                else:
+                    j += 1
         else:
             i += 1
 
