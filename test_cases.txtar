@@ -453,6 +453,86 @@ What is this?
 
 My response
 
+-- format_merged/webfetch_with_prompt.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [
+        {"type": "tool_use", "name": "WebFetch", "input": {"url": "https://docs.example.com/api", "prompt": "How do I authenticate API requests?"}}
+      ]
+    }
+  }
+]
+-- format_merged/webfetch_with_prompt.md --
+### Assistant (sonnet)
+
+- [WebFetch] https://docs.example.com/api
+  > How do I authenticate API requests?
+
+-- format_merged/task_with_prompt.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [
+        {"type": "tool_use", "name": "Task", "input": {"description": "explore codebase", "subagent_type": "Explore", "prompt": "Find all files that handle authentication and explain how the auth flow works"}}
+      ]
+    }
+  }
+]
+-- format_merged/task_with_prompt.md --
+### Assistant (sonnet)
+
+- [Task] explore codebase (Explore)
+  > Find all files that handle authentication and explain how the auth flow works
+
+-- format_merged/task_multiline_prompt.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [
+        {"type": "tool_use", "name": "Task", "input": {"description": "explore codebase", "subagent_type": "Explore", "prompt": "Find all files that handle authentication.\nExplain how the auth flow works.\nList any security concerns."}}
+      ]
+    }
+  }
+]
+-- format_merged/task_multiline_prompt.md --
+### Assistant (sonnet)
+
+- [Task] explore codebase (Explore)
+  > Find all files that handle authentication.
+  > Explain how the auth flow works.
+  > List any security concerns.
+
+-- format_merged/webfetch_multiline_prompt.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [
+        {"type": "tool_use", "name": "WebFetch", "input": {"url": "https://docs.example.com/api", "prompt": "How do I authenticate?\nWhat are the rate limits?\nShow example requests."}}
+      ]
+    }
+  }
+]
+-- format_merged/webfetch_multiline_prompt.md --
+### Assistant (sonnet)
+
+- [WebFetch] https://docs.example.com/api
+  > How do I authenticate?
+  > What are the rate limits?
+  > Show example requests.
+
 # =============================================================================
 # build_conversation_md tests
 # =============================================================================

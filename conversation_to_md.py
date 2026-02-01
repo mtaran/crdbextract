@@ -68,6 +68,10 @@ def _format_tool_call(tool_name: str, tool_input: dict) -> str:
     if tool_name == 'Task':
         desc = tool_input.get('description', '')
         agent_type = tool_input.get('subagent_type', '')
+        prompt = tool_input.get('prompt', '')
+        if prompt:
+            prompt_lines = '\n'.join(f"  > {line}" for line in prompt.split('\n'))
+            return f"[Task] {desc} ({agent_type})\n{prompt_lines}"
         return f"[Task] {desc} ({agent_type})"
 
     if tool_name == 'TodoWrite':
@@ -84,6 +88,10 @@ def _format_tool_call(tool_name: str, tool_input: dict) -> str:
 
     if tool_name == 'WebFetch':
         url = tool_input.get('url', '')
+        prompt = tool_input.get('prompt', '')
+        if prompt:
+            prompt_lines = '\n'.join(f"  > {line}" for line in prompt.split('\n'))
+            return f"[WebFetch] {url}\n{prompt_lines}"
         return f"[WebFetch] {url}"
 
     if tool_name == 'WebSearch':

@@ -3,7 +3,7 @@ name = "crdbextract"
 version = "0.2.0"
 description = "Tools for extracting data from Chrome's IndexedDB storage and Claude Code sessions"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = "MIT"
 
 dependencies = [
