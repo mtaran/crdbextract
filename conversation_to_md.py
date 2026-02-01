@@ -245,7 +245,6 @@ def format_merged_messages(messages: list[dict], indent: str = "") -> str:
                 if item_type == 'thinking':
                     for line in item_content.split('\n'):
                         lines.append(f"{indent}> {line}")
-                    lines.append(f"{indent}>")
                     lines.append("")
                     j += 1
 
