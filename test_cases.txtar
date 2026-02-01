@@ -1,0 +1,819 @@
+# Test cases for conversation_to_md.py
+# Format: pairs of .json and .md files
+# The .json contains input data, .md contains expected output
+#
+# Naming convention:
+#   format_merged/<name>.json  -> tests format_merged_messages()
+#   build_conv/<name>.json     -> tests build_conversation_md()
+#   get_text/<name>.json       -> tests get_text_content()
+#   extract_parts/<name>.json  -> tests extract_message_parts()
+
+# =============================================================================
+# format_merged_messages tests
+# =============================================================================
+
+-- format_merged/empty.json --
+[]
+-- format_merged/empty.md --
+
+-- format_merged/single_user.json --
+[
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [{"type": "text", "text": "Hello there"}]
+    }
+  }
+]
+-- format_merged/single_user.md --
+### User
+
+Hello there
+
+-- format_merged/single_assistant.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4-20250514",
+      "content": [{"type": "text", "text": "Hi, how can I help?"}]
+    }
+  }
+]
+-- format_merged/single_assistant.md --
+### Assistant (sonnet)
+
+Hi, how can I help?
+
+-- format_merged/assistant_with_thinking.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-opus-4-20250514",
+      "content": [
+        {"type": "thinking", "thinking": "Let me analyze this request"},
+        {"type": "text", "text": "Here is my answer"}
+      ]
+    }
+  }
+]
+-- format_merged/assistant_with_thinking.md --
+### Assistant (opus)
+
+> Let me analyze this request
+>
+
+Here is my answer
+
+-- format_merged/user_assistant_exchange.json --
+[
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [{"type": "text", "text": "What is 2+2?"}]
+    }
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [{"type": "text", "text": "2+2 equals 4."}]
+    }
+  }
+]
+-- format_merged/user_assistant_exchange.md --
+### User
+
+What is 2+2?
+
+### Assistant (sonnet)
+
+2+2 equals 4.
+
+-- format_merged/tool_calls_merged.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [{"type": "text", "text": "Let me check some files"}]
+    }
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [{"type": "tool_use", "name": "Read", "input": {"file_path": "/a.py"}}]
+    }
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [{"type": "tool_use", "name": "Read", "input": {"file_path": "/b.py"}}]
+    }
+  }
+]
+-- format_merged/tool_calls_merged.md --
+### Assistant (sonnet)
+
+Let me check some files
+
+- [Read] /a.py
+- [Read] /b.py
+
+-- format_merged/tool_merge_stops_at_text.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [{"type": "tool_use", "name": "Read", "input": {"file_path": "/a.py"}}]
+    }
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [{"type": "text", "text": "Found something interesting"}]
+    }
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [{"type": "tool_use", "name": "Read", "input": {"file_path": "/b.py"}}]
+    }
+  }
+]
+-- format_merged/tool_merge_stops_at_text.md --
+### Assistant (sonnet)
+
+- [Read] /a.py
+
+### Assistant (sonnet)
+
+Found something interesting
+
+- [Read] /b.py
+
+-- format_merged/indented.json --
+{
+  "indent": "> ",
+  "messages": [
+    {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [{"type": "text", "text": "Hello"}]
+      }
+    }
+  ]
+}
+-- format_merged/indented.md --
+> ### User
+
+> Hello
+
+-- format_merged/skipped_messages.json --
+[
+  {"type": "queue-operation", "data": "skip me"},
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [{"type": "text", "text": "Hello"}]
+    }
+  },
+  {"type": "file-history-snapshot", "data": "skip me too"},
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [{"type": "text", "text": "Hi"}]
+    }
+  }
+]
+-- format_merged/skipped_messages.md --
+### User
+
+Hello
+
+### Assistant (sonnet)
+
+Hi
+
+-- format_merged/multiline_text.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [{"type": "text", "text": "Line 1\nLine 2\nLine 3"}]
+    }
+  }
+]
+-- format_merged/multiline_text.md --
+### Assistant (sonnet)
+
+Line 1
+Line 2
+Line 3
+
+-- format_merged/user_tool_result_skipped.json --
+[
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [{"type": "tool_result", "tool_use_id": "123", "content": "result"}]
+    }
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [{"type": "text", "text": "Got the result"}]
+    }
+  }
+]
+-- format_merged/user_tool_result_skipped.md --
+### Assistant (sonnet)
+
+Got the result
+
+-- format_merged/string_content.json --
+[
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": "Simple string message"
+    }
+  }
+]
+-- format_merged/string_content.md --
+### User
+
+Simple string message
+
+-- format_merged/ide_tags_cleaned.json --
+[
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [{"type": "text", "text": "Look at this <ide_selection>selected code</ide_selection> please"}]
+    }
+  }
+]
+-- format_merged/ide_tags_cleaned.md --
+### User
+
+Look at this [IDE Selection] please
+
+-- format_merged/system_reminder_removed.json --
+[
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [{"type": "text", "text": "Hello <system-reminder>internal stuff</system-reminder> world"}]
+    }
+  }
+]
+-- format_merged/system_reminder_removed.md --
+### User
+
+Hello  world
+
+-- format_merged/ide_opened_file_removed.json --
+[
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [{"type": "text", "text": "<ide_opened_file>path/to/file.py</ide_opened_file>What is this?"}]
+    }
+  }
+]
+-- format_merged/ide_opened_file_removed.md --
+### User
+
+What is this?
+
+-- format_merged/all_tool_types.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [
+        {"type": "tool_use", "name": "Bash", "input": {"command": "ls -la"}},
+        {"type": "tool_use", "name": "Read", "input": {"file_path": "/path/to/file.py"}},
+        {"type": "tool_use", "name": "Write", "input": {"file_path": "/path/to/new.py"}},
+        {"type": "tool_use", "name": "Edit", "input": {"file_path": "/path/to/edit.py"}},
+        {"type": "tool_use", "name": "Glob", "input": {"pattern": "**/*.py"}},
+        {"type": "tool_use", "name": "Grep", "input": {"pattern": "def main"}},
+        {"type": "tool_use", "name": "Task", "input": {"description": "search files", "subagent_type": "Explore"}},
+        {"type": "tool_use", "name": "WebFetch", "input": {"url": "https://example.com"}},
+        {"type": "tool_use", "name": "WebSearch", "input": {"query": "python async"}},
+        {"type": "tool_use", "name": "CustomTool", "input": {"foo": "bar"}}
+      ]
+    }
+  }
+]
+-- format_merged/all_tool_types.md --
+### Assistant (sonnet)
+
+- [Bash]
+- [Read] /path/to/file.py
+- [Write] /path/to/new.py
+- [Edit] /path/to/edit.py
+- [Glob] **/*.py
+- [Grep] def main
+- [Task] search files (Explore)
+- [WebFetch] https://example.com
+- [WebSearch] python async
+- [CustomTool]
+
+-- format_merged/todo_write.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [
+        {"type": "tool_use", "name": "TodoWrite", "input": {
+          "todos": [
+            {"status": "pending", "content": "First task"},
+            {"status": "completed", "content": "Second task done"}
+          ]
+        }}
+      ]
+    }
+  }
+]
+-- format_merged/todo_write.md --
+### Assistant (sonnet)
+
+- [TodoWrite] P: First task; C: Second task done
+
+-- format_merged/todo_write_many.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [
+        {"type": "tool_use", "name": "TodoWrite", "input": {
+          "todos": [
+            {"status": "pending", "content": "Task 1"},
+            {"status": "pending", "content": "Task 2"},
+            {"status": "pending", "content": "Task 3"},
+            {"status": "pending", "content": "Task 4"},
+            {"status": "pending", "content": "Task 5"},
+            {"status": "pending", "content": "Task 6"},
+            {"status": "pending", "content": "Task 7"},
+            {"status": "pending", "content": "Task 8"}
+          ]
+        }}
+      ]
+    }
+  }
+]
+-- format_merged/todo_write_many.md --
+### Assistant (sonnet)
+
+- [TodoWrite] P: Task 1; P: Task 2; P: Task 3; P: Task 4; P: Task 5 (+3 more)
+
+-- format_merged/todo_write_empty.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-sonnet-4",
+      "content": [
+        {"type": "tool_use", "name": "TodoWrite", "input": {"todos": []}}
+      ]
+    }
+  }
+]
+-- format_merged/todo_write_empty.md --
+### Assistant (sonnet)
+
+- [TodoWrite]
+
+-- format_merged/multiline_thinking.json --
+[
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "model": "claude-opus-4",
+      "content": [
+        {"type": "thinking", "thinking": "First thought\nSecond thought\nThird thought"},
+        {"type": "text", "text": "My response"}
+      ]
+    }
+  }
+]
+-- format_merged/multiline_thinking.md --
+### Assistant (opus)
+
+> First thought
+> Second thought
+> Third thought
+>
+
+My response
+
+# =============================================================================
+# build_conversation_md tests
+# =============================================================================
+
+-- build_conv/basic.json --
+{
+  "session_info": {
+    "filepath_stem": "test-session",
+    "session_id": "session-123",
+    "messages": [
+      {
+        "type": "user",
+        "sessionId": "session-123",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "cwd": "/home/user/project",
+        "message": {
+          "role": "user",
+          "content": [{"type": "text", "text": "Hello"}]
+        }
+      },
+      {
+        "type": "assistant",
+        "sessionId": "session-123",
+        "message": {
+          "role": "assistant",
+          "model": "claude-sonnet-4",
+          "content": [{"type": "text", "text": "Hi there!"}]
+        }
+      }
+    ]
+  },
+  "agents": []
+}
+-- build_conv/basic.md --
+# Conversation: test-session
+
+**Session ID:** `session-123`
+**Started:** 2024-01-15 10:30
+**Working Directory:** `/home/user/project`
+**Agents spawned:** 0
+
+---
+
+### User
+
+Hello
+
+### Assistant (sonnet)
+
+Hi there!
+
+-- build_conv/with_agent.json --
+{
+  "session_info": {
+    "filepath_stem": "main-session",
+    "session_id": "main-session",
+    "messages": [
+      {
+        "type": "user",
+        "sessionId": "main-session",
+        "timestamp": "2024-01-15T10:00:00Z",
+        "cwd": "/project",
+        "message": {
+          "role": "user",
+          "content": [{"type": "text", "text": "Search for files"}]
+        }
+      },
+      {
+        "type": "assistant",
+        "sessionId": "main-session",
+        "message": {
+          "role": "assistant",
+          "model": "claude-sonnet-4",
+          "content": [
+            {"type": "text", "text": "I'll search for you"},
+            {"type": "tool_use", "name": "Task", "input": {"description": "search", "subagent_type": "Explore"}}
+          ]
+        },
+        "toolUseResult": {"agentId": "agent-1", "description": "search task"}
+      },
+      {
+        "type": "assistant",
+        "sessionId": "main-session",
+        "message": {
+          "role": "assistant",
+          "model": "claude-sonnet-4",
+          "content": [{"type": "text", "text": "Found the files!"}]
+        }
+      }
+    ]
+  },
+  "agents": [
+    {
+      "agent_id": "agent-1",
+      "messages": [
+        {
+          "type": "user",
+          "sessionId": "main-session",
+          "agentId": "agent-1",
+          "message": {
+            "role": "user",
+            "content": [{"type": "text", "text": "Agent task"}]
+          }
+        },
+        {
+          "type": "assistant",
+          "sessionId": "main-session",
+          "agentId": "agent-1",
+          "message": {
+            "role": "assistant",
+            "model": "claude-haiku-3",
+            "content": [{"type": "text", "text": "Agent found files"}]
+          }
+        }
+      ]
+    }
+  ]
+}
+-- build_conv/with_agent.md --
+# Conversation: main-session
+
+**Session ID:** `main-session`
+**Started:** 2024-01-15 10:00
+**Working Directory:** `/project`
+**Agents spawned:** 1
+
+---
+
+### User
+
+Search for files
+
+### Assistant (sonnet)
+
+I'll search for you
+
+- [Task] search (Explore)
+
+> ---
+> **[Agent: agent-1]** search task
+>
+> ### User
+
+> Agent task
+
+> ### Assistant (haiku)
+
+> Agent found files
+
+> **[Agent: agent-1]** ended
+> ---
+
+### Assistant (sonnet)
+
+Found the files!
+
+-- build_conv/orphan_agent.json --
+{
+  "session_info": {
+    "filepath_stem": "main-session",
+    "session_id": "main-session",
+    "messages": [
+      {
+        "type": "user",
+        "sessionId": "main-session",
+        "timestamp": "2024-01-15T10:00:00Z",
+        "message": {
+          "role": "user",
+          "content": [{"type": "text", "text": "Hello"}]
+        }
+      }
+    ]
+  },
+  "agents": [
+    {
+      "agent_id": "orphan-agent",
+      "messages": [
+        {
+          "type": "assistant",
+          "sessionId": "main-session",
+          "agentId": "orphan-agent",
+          "message": {
+            "role": "assistant",
+            "model": "claude-haiku-3",
+            "content": [{"type": "text", "text": "Orphan agent output"}]
+          }
+        }
+      ]
+    }
+  ]
+}
+-- build_conv/orphan_agent.md --
+# Conversation: main-session
+
+**Session ID:** `main-session`
+**Started:** 2024-01-15 10:00
+**Agents spawned:** 1
+
+---
+
+### User
+
+Hello
+
+## Agent: orphan-agent (not inlined)
+
+> ### Assistant (haiku)
+
+> Orphan agent output
+
+-- build_conv/no_cwd.json --
+{
+  "session_info": {
+    "filepath_stem": "test-session",
+    "session_id": "session-456",
+    "messages": [
+      {
+        "type": "user",
+        "sessionId": "session-456",
+        "timestamp": "2024-02-20T15:45:00Z",
+        "message": {
+          "role": "user",
+          "content": [{"type": "text", "text": "Test"}]
+        }
+      }
+    ]
+  },
+  "agents": []
+}
+-- build_conv/no_cwd.md --
+# Conversation: test-session
+
+**Session ID:** `session-456`
+**Started:** 2024-02-20 15:45
+**Agents spawned:** 0
+
+---
+
+### User
+
+Test
+
+# =============================================================================
+# get_text_content tests
+# =============================================================================
+
+-- get_text/empty.json --
+[]
+-- get_text/empty.md --
+{"text": "", "thinking": "", "tools": []}
+
+-- get_text/text_blocks.json --
+[
+  {"type": "text", "text": "Line 1"},
+  {"type": "text", "text": "Line 2"}
+]
+-- get_text/text_blocks.md --
+{"text": "Line 1\nLine 2", "thinking": "", "tools": []}
+
+-- get_text/thinking_and_text.json --
+[
+  {"type": "thinking", "thinking": "Deep thoughts"},
+  {"type": "text", "text": "My answer"}
+]
+-- get_text/thinking_and_text.md --
+{"text": "My answer", "thinking": "Deep thoughts", "tools": []}
+
+-- get_text/string_content.json --
+["Hello", "World"]
+-- get_text/string_content.md --
+{"text": "Hello\nWorld", "thinking": "", "tools": []}
+
+-- get_text/tool_result_skipped.json --
+[
+  {"type": "tool_result", "tool_use_id": "123", "content": "result data"},
+  {"type": "text", "text": "After result"}
+]
+-- get_text/tool_result_skipped.md --
+{"text": "After result", "thinking": "", "tools": []}
+
+-- get_text/multiple_tools.json --
+[
+  {"type": "tool_use", "name": "Read", "input": {"file_path": "/a.py"}},
+  {"type": "tool_use", "name": "Write", "input": {"file_path": "/b.py"}},
+  {"type": "tool_use", "name": "Bash", "input": {"command": "ls"}}
+]
+-- get_text/multiple_tools.md --
+{"text": "", "thinking": "", "tools": ["[Read] /a.py", "[Write] /b.py", "[Bash]"]}
+
+# =============================================================================
+# extract_message_parts tests
+# =============================================================================
+
+-- extract_parts/queue_operation.json --
+{"type": "queue-operation", "data": "something"}
+-- extract_parts/queue_operation.md --
+null
+
+-- extract_parts/file_history_snapshot.json --
+{"type": "file-history-snapshot", "data": "something"}
+-- extract_parts/file_history_snapshot.md --
+null
+
+-- extract_parts/user_message.json --
+{
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": [{"type": "text", "text": "Hello there"}]
+  }
+}
+-- extract_parts/user_message.md --
+{"role": "user", "model": "", "text": "Hello there", "thinking": "", "tool_calls": []}
+
+-- extract_parts/assistant_message.json --
+{
+  "type": "assistant",
+  "message": {
+    "role": "assistant",
+    "model": "claude-sonnet-4-20250514",
+    "content": [{"type": "text", "text": "Here's my response"}]
+  }
+}
+-- extract_parts/assistant_message.md --
+{"role": "assistant", "model": "sonnet", "text": "Here's my response", "thinking": "", "tool_calls": []}
+
+-- extract_parts/empty_content.json --
+{
+  "type": "assistant",
+  "message": {
+    "role": "assistant",
+    "content": []
+  }
+}
+-- extract_parts/empty_content.md --
+null
+
+-- extract_parts/user_tool_result.json --
+{
+  "type": "user",
+  "message": {
+    "role": "user",
+    "content": [{"type": "tool_result", "tool_use_id": "123", "content": "result"}]
+  }
+}
+-- extract_parts/user_tool_result.md --
+null
+
+-- extract_parts/model_without_hyphen.json --
+{
+  "type": "assistant",
+  "message": {
+    "role": "assistant",
+    "model": "gpt4",
+    "content": [{"type": "text", "text": "Hello"}]
+  }
+}
+-- extract_parts/model_without_hyphen.md --
+{"role": "assistant", "model": "gpt4", "text": "Hello", "thinking": "", "tool_calls": []}
+
+-- extract_parts/missing_model.json --
+{
+  "type": "assistant",
+  "message": {
+    "role": "assistant",
+    "content": [{"type": "text", "text": "Hello"}]
+  }
+}
+-- extract_parts/missing_model.md --
+{"role": "assistant", "model": "", "text": "Hello", "thinking": "", "tool_calls": []}
